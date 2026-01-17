@@ -6,6 +6,14 @@
     <title>레마영수학원 - 수학 연계 지도 (2022 개정)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- MathJax for formula rendering -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Noto+Serif+KR:wght@400;700&display=swap');
         
@@ -37,13 +45,29 @@
             z-index: 10;
             display: flex;
             flex-direction: column;
+            cursor: pointer;
         }
         
         .concept-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-color: #cbd5e1;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -3px rgba(59, 130, 246, 0.15), 0 4px 6px -2px rgba(59, 130, 246, 0.1);
+            border-color: #93c5fd;
         }
+
+        .concept-card::after {
+            content: '\f002'; /* Search icon */
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .concept-card:hover::after { opacity: 1; }
 
         /* Flow Lines */
         .flow-line {
@@ -60,11 +84,7 @@
         }
 
         /* Danger/Focus Card Specifics */
-        .danger-card {
-            border: 1px solid #fda4af;
-            background-color: #fff1f2;
-        }
-        
+        .danger-card { border: 1px solid #fda4af; background-color: #fff1f2; }
         .danger-label {
             background-color: #be123c; color: white; font-size: 0.65rem;
             padding: 2px 8px; border-radius: 9999px;
@@ -72,7 +92,7 @@
             font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Why Box (New Feature) */
+        /* Why Box */
         .why-box {
             margin-top: auto;
             background-color: rgba(255, 255, 255, 0.6);
@@ -84,13 +104,8 @@
             line-height: 1.3;
         }
         .why-title {
-            font-weight: 700;
-            display: block;
-            margin-bottom: 2px;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            font-weight: 700; display: block; margin-bottom: 2px;
+            font-size: 0.7rem; display: flex; align-items: center; gap: 4px;
         }
 
         /* Accent Bars */
@@ -100,12 +115,60 @@
         .accent-orange { background-color: #f59e0b; }
         .accent-purple { background-color: #8b5cf6; }
 
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            z-index: 100;
+            justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 0;
+            border-radius: 1rem;
+            width: 95%; max-width: 650px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: modalFadeIn 0.3s ease-out;
+            display: flex; flex-direction: column;
+        }
+
+        .modal-header {
+            position: sticky; top: 0; z-index: 10;
+        }
+
+        .note-section {
+            border-left: 3px solid #e2e8f0;
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .note-title {
+            font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .note-content {
+            font-size: 0.95rem; color: #475569; line-height: 1.6;
+            background-color: #f8fafc; padding: 0.75rem; border-radius: 0.5rem;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         @media print {
             body { background-color: white; }
             .no-print { display: none !important; }
             .map-container { overflow: visible; }
-            .concept-card { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+            .concept-card { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; cursor: default; }
+            .concept-card::after { display: none; }
             .why-box { background-color: #fff0f2 !important; border: 1px solid #fda4af; }
+            .modal-overlay { display: none !important; }
         }
     </style>
 </head>
@@ -121,6 +184,9 @@
         <div class="flex flex-col items-end gap-3 mt-4 md:mt-0">
             <div class="bg-slate-800 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm">
                 레마영수학원
+            </div>
+            <div class="text-xs text-blue-600 font-bold animate-pulse no-print">
+                <i class="fas fa-mouse-pointer"></i> 각 카드를 클릭하면 '개념 요약 노트'가 열립니다.
             </div>
             <button onclick="window.print()" class="no-print text-slate-500 hover:text-slate-800 text-sm font-medium transition flex items-center gap-2">
                 <i class="fas fa-print"></i> 인쇄 / PDF 저장
@@ -172,28 +238,28 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e12_num')">
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-slate-800 mb-2">수 감각 형성</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">99~네 자리 수<br>덧셈과 뺄셈<br>곱셈 구구</p>
                     </div>
                 </div>
                 <div class="col-span-3">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e12_rule')">
                         <div class="accent-bar accent-green"></div>
                         <h3 class="font-bold text-slate-800 mb-2">규칙 찾기</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">□를 사용한 식<br>규칙에 따라 수 나열</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e12_geo')">
                         <div class="accent-bar accent-orange"></div>
                         <h3 class="font-bold text-slate-800 mb-2">도형의 기초</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">여러 가지 모양 (○△□)<br>쌓기나무</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e12_stat')">
                         <div class="accent-bar accent-purple"></div>
                         <h3 class="font-bold text-slate-800 mb-2">분류하기</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">기준에 따라 분류<br>표 만들기</p>
@@ -210,7 +276,7 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e34_num')">
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-slate-800 mb-2">자연수 완성 / 분수</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">나눗셈 (몫과 나머지)<br>분수와 소수의 기초<br>분모가 같은 덧뺄셈</p>
@@ -220,14 +286,14 @@
                     <!-- Space -->
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e34_geo')">
                         <div class="accent-bar accent-orange"></div>
                         <h3 class="font-bold text-slate-800 mb-2">평면도형의 성질</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">삼각형, 사각형, 다각형<br>각도 (예각, 둔각)<br>밀기, 뒤집기, 돌리기</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e34_stat')">
                         <div class="accent-bar accent-purple"></div>
                         <h3 class="font-bold text-slate-800 mb-2">자료의 시각화</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">막대그래프<br>꺾은선그래프</p>
@@ -244,33 +310,33 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card danger-card">
+                    <div class="concept-card danger-card" onclick="openModal('e56_num')">
                         <div class="danger-label">집중관리</div>
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-rose-900 mb-2">분수의 연산</h3>
                         <p class="text-xs text-slate-600 leading-relaxed font-medium mb-3">약수와 배수 (최대/최소)<br>약분과 통분 (중요)<br>분수/소수의 곱셈·나눗셈</p>
                         <div class="why-box">
                             <span class="why-title"><i class="fas fa-question-circle"></i> 왜 중요한가요?</span>
-                            여기서 막히면 중·고등 수학의 모든 계산(방정식, 미분 등)이 불가능해집니다. 연산의 구구단 같은 존재입니다.
+                            여기서 막히면 중·고등 수학의 모든 계산이 불가능해집니다.
                         </div>
                     </div>
                 </div>
                 <div class="col-span-3">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e56_rule')">
                         <div class="accent-bar accent-green"></div>
                         <h3 class="font-bold text-slate-800 mb-2">비와 비율 / 비례</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">비와 비율 (%)<br>비례식과 비례배분<br>정비례와 반비례</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e56_geo')">
                         <div class="accent-bar accent-orange"></div>
                         <h3 class="font-bold text-slate-800 mb-2">도형의 측정</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">합동과 대칭<br>직육면체 (겉넓이/부피)<br>원의 넓이 ($\pi$)</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('e56_stat')">
                         <div class="accent-bar accent-purple"></div>
                         <h3 class="font-bold text-slate-800 mb-2">평균과 가능성</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">평균<br>가능성 (확률 기초)<br>띠/원그래프</p>
@@ -292,33 +358,33 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m1_num')">
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-slate-800 mb-2">정수와 유리수</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">소인수분해<br><span class="text-indigo-600 font-bold">음수(-)의 등장</span><br>정수/유리수 사칙연산</p>
                     </div>
                 </div>
                 <div class="col-span-3">
-                    <div class="concept-card danger-card">
+                    <div class="concept-card danger-card" onclick="openModal('m1_alg')">
                         <div class="danger-label">추상화 시작</div>
                         <div class="accent-bar accent-green"></div>
                         <h3 class="font-bold text-rose-900 mb-2">문자와 식</h3>
                         <p class="text-xs text-slate-600 leading-relaxed font-medium mb-3">문자의 사용 ($x$ 등장)<br>일차방정식 풀이<br>좌표평면과 그래프</p>
                         <div class="why-box">
                             <span class="why-title"><i class="fas fa-question-circle"></i> 왜 중요한가요?</span>
-                            숫자 대신 문자($x$)를 사용하는 '추상적 사고'의 첫 단계입니다. 방정식 식 세우기가 여기서 판가름 납니다.
+                            숫자 대신 문자($x$)를 사용하는 '추상적 사고'의 첫 단계입니다.
                         </div>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m1_geo')">
                         <div class="accent-bar accent-orange"></div>
                         <h3 class="font-bold text-slate-800 mb-2">기본 도형과 작도</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">점, 선, 면, 각<br>작도와 합동 (SSS, SAS...)<br>입체도형 성질</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m1_stat')">
                         <div class="accent-bar accent-purple"></div>
                         <h3 class="font-bold text-slate-800 mb-2">통계적 변환</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">줄기와 잎, 히스토그램<br>도수분포표<br>상대도수</p>
@@ -335,33 +401,33 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m2_num')">
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-slate-800 mb-2">유리수와 식</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">순환소수 (유리수)<br>지수법칙<br>다항식의 계산</p>
                     </div>
                 </div>
                 <div class="col-span-3">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m2_alg')">
                         <div class="accent-bar accent-green"></div>
                         <h3 class="font-bold text-slate-800 mb-2">함수와 부등식</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">연립일차방정식<br>일차부등식<br><span class="text-indigo-600 font-bold">일차함수 ($y=ax+b$)</span></p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card danger-card">
+                    <div class="concept-card danger-card" onclick="openModal('m2_geo')">
                         <div class="danger-label">기하 심화</div>
                         <div class="accent-bar accent-orange"></div>
                         <h3 class="font-bold text-rose-900 mb-2">닮음과 성질</h3>
                         <p class="text-xs text-slate-600 leading-relaxed font-medium mb-3">삼각형/사각형 성질<br>도형의 닮음 (논증기하)<br>피타고라스(기초)</p>
                         <div class="why-box">
                             <span class="why-title"><i class="fas fa-question-circle"></i> 왜 중요한가요?</span>
-                            눈대중이 아닌 '논리'로 도형을 증명해야 합니다. 고등 기하와 미적분 도형 문제의 80%가 중2 닮음을 활용합니다.
+                            눈대중이 아닌 '논리'로 도형을 증명해야 합니다.
                         </div>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m2_stat')">
                         <div class="accent-bar accent-purple"></div>
                         <h3 class="font-bold text-slate-800 mb-2">확률</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">경우의 수<br>확률의 성질과 계산</p>
@@ -378,28 +444,28 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m3_num')">
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-slate-800 mb-2">실수와 제곱근</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">제곱근($\sqrt{}$)과 실수<br>곱셈공식 & 인수분해</p>
                     </div>
                 </div>
                 <div class="col-span-3">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m3_alg')">
                         <div class="accent-bar accent-green"></div>
                         <h3 class="font-bold text-slate-800 mb-2">이차식의 세계</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">이차방정식 (근의공식)<br><span class="text-indigo-600 font-bold">이차함수 ($y=ax^2$)</span></p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m3_geo')">
                         <div class="accent-bar accent-orange"></div>
                         <h3 class="font-bold text-slate-800 mb-2">삼각비와 원</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">피타고라스 정리<br>삼각비 (sin, cos)<br>원의 성질</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('m3_stat')">
                         <div class="accent-bar accent-purple"></div>
                         <h3 class="font-bold text-slate-800 mb-2">통계 심화</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">대푯값 (중앙값 등)<br>산포도 (분산, 표준편차)<br>상관관계</p>
@@ -412,7 +478,7 @@
                 <span class="bg-slate-100 text-slate-500 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">High School</span>
             </div>
 
-            <!-- 고등 공통 (2022 개정 반영: 행렬 추가) -->
+            <!-- 고등 공통 -->
             <div class="grid grid-cols-10 gap-6 mb-8 items-stretch">
                 <div class="col-span-1">
                     <div class="grade-badge bg-slate-800">
@@ -421,33 +487,33 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card danger-card">
+                    <div class="concept-card danger-card" onclick="openModal('h_com_num')">
                         <div class="danger-label">개념 확장</div>
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-rose-900 mb-2">복소수와 행렬</h3>
                         <p class="text-xs text-slate-600 leading-relaxed font-medium mb-3">다항식 (나머지정리)<br>복소수($i$)와 방정식<br><span class="text-indigo-700 bg-indigo-50 px-1 rounded">★ 행렬(Matrix) 재도입</span></p>
                         <div class="why-box">
                             <span class="why-title"><i class="fas fa-question-circle"></i> 왜 중요한가요?</span>
-                            수의 체계가 완성됩니다. 특히 '행렬'은 2022개정에서 부활한 핵심 파트로, 데이터 처리의 기초가 됩니다.
+                            수의 체계가 완성됩니다. 특히 '행렬'은 2022개정의 핵심입니다.
                         </div>
                     </div>
                 </div>
                 <div class="col-span-3">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('h_com_alg')">
                         <div class="accent-bar accent-green"></div>
                         <h3 class="font-bold text-slate-800 mb-2">함수의 일반화</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">합성함수와 역함수<br>유리함수와 무리함수<br>부등식의 영역</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('h_com_geo')">
                         <div class="accent-bar accent-orange"></div>
                         <h3 class="font-bold text-slate-800 mb-2">도형의 방정식</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">평면좌표<br>직선/원의 방정식<br>도형의 이동</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('h_com_stat')">
                         <div class="accent-bar accent-purple"></div>
                         <h3 class="font-bold text-slate-800 mb-2">순열과 조합</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">순열 ($P$) / 조합 ($C$)<br>논리적 경우의 수</p>
@@ -455,7 +521,7 @@
                 </div>
             </div>
 
-             <!-- 고등 선택(일반/진로) -->
+             <!-- 고등 선택 -->
              <div class="grid grid-cols-10 gap-6 mb-8 items-stretch">
                 <div class="col-span-1">
                     <div class="grade-badge bg-slate-700">
@@ -464,32 +530,32 @@
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="concept-card">
+                    <div class="concept-card" onclick="openModal('h_sel_alg')">
                         <div class="accent-bar accent-blue"></div>
                         <h3 class="font-bold text-slate-800 mb-2">대수 (구 수1)</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">지수와 로그<br>삼각함수<br>수열 ($\sum$)</p>
                     </div>
                 </div>
                 <div class="col-span-3">
-                    <div class="concept-card danger-card shadow-md">
+                    <div class="concept-card danger-card shadow-md" onclick="openModal('h_sel_calc')">
                         <div class="danger-label">수능 핵심</div>
                         <div class="accent-bar accent-green"></div>
                         <h3 class="font-bold text-rose-900 mb-2">미적분 I·II</h3>
                         <p class="text-xs text-slate-600 leading-relaxed font-medium mb-3">함수의 극한과 연속<br><span class="font-bold border-b border-rose-400">미분법 (변화율)</span><br><span class="font-bold border-b border-rose-400">적분법 (넓이/부피)</span></p>
                         <div class="why-box">
                             <span class="why-title"><i class="fas fa-question-circle"></i> 왜 중요한가요?</span>
-                            고등 수학의 꽃입니다. '변화'를 다루는 학문으로, 이공계열 진학 시 대학 수학의 100% 기초가 됩니다.
+                            고등 수학의 꽃입니다. 이공계열 진학 시 대학 수학의 100% 기초가 됩니다.
                         </div>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-4 flex flex-col justify-center h-full">
+                    <div class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-4 flex flex-col justify-center h-full cursor-pointer hover:bg-slate-100 transition" onclick="openModal('h_sel_geo')">
                         <h3 class="font-bold text-slate-500 text-sm mb-1">[기하]</h3>
                         <p class="text-xs text-slate-400">이차곡선<br>평면벡터<br>공간도형</p>
                     </div>
                 </div>
                 <div class="col-span-2">
-                    <div class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-4 flex flex-col justify-center h-full">
+                    <div class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-4 flex flex-col justify-center h-full cursor-pointer hover:bg-slate-100 transition" onclick="openModal('h_sel_stat')">
                         <h3 class="font-bold text-slate-500 text-sm mb-1">[확률과 통계]</h3>
                         <p class="text-xs text-slate-400">조건부확률<br>이항정리<br>통계적 추정</p>
                     </div>
@@ -503,5 +569,636 @@
         * 본 자료는 2022 개정 교육과정(행렬 포함)을 기준으로 제작되었습니다. © Rhema English Math Academy
     </div>
 
+    <!-- Modal Container -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content relative">
+            <button onclick="closeModal(event, true)" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 transition z-50">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div id="modal-body" class="p-0">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const conceptData = {
+            // ================== 초등 1-2 ==================
+            "e12_num": {
+                title: "수 감각 형성",
+                color: "bg-blue-500",
+                sections: [
+                    {
+                        subtitle: "수의 체계",
+                        content: "• 99까지의 수: 십진법의 기초 (10개씩 묶음과 낱개)<br>• 세 자리 수 / 네 자리 수: 자릿값의 원리 이해 (백의 자리, 천의 자리)"
+                    },
+                    {
+                        subtitle: "덧셈과 뺄셈",
+                        content: "• 모으기와 가르기: 덧셈과 뺄셈의 기초 개념<br>• 받아올림/받아내림: 10을 만들어 윗자리에 1을 더하거나 가져오는 원리"
+                    },
+                    {
+                        subtitle: "곱셈구구",
+                        content: "• 곱셈의 의미: 동수누가 (같은 수를 여러 번 더함, $2+2+2 = 2 \\times 3$)<br>• 구구단 암기: 2단부터 9단까지 능숙하게 외우기"
+                    }
+                ],
+                tip: "연산은 속도보다 정확성이 우선입니다. 구구단은 노래나 게임을 통해 반사적으로 튀어나올 때까지 연습시켜 주세요."
+            },
+            "e12_rule": {
+                title: "규칙 찾기",
+                color: "bg-green-500",
+                sections: [
+                    {
+                        subtitle: "반복되는 규칙",
+                        content: "• 모양의 배열: ○ △ ○ △ ... (반복되는 마디 찾기)<br>• 수의 배열: 2, 4, 6, 8 ... (2씩 커지는 규칙)"
+                    },
+                    {
+                        subtitle: "규칙과 대응",
+                        content: "• □의 사용: 미지수의 기초. $3 + \\Box = 5$ 와 같이 어떤 수를 기호로 표현하는 연습"
+                    }
+                ],
+                tip: "단순한 나열이 아니라 '다음에 올 것'을 예측하는 추론 능력이 핵심입니다. 일상생활(타일 무늬 등)에서 규칙을 찾아보세요."
+            },
+            "e12_geo": {
+                title: "도형의 기초",
+                color: "bg-orange-500",
+                sections: [
+                    {
+                        subtitle: "여러 가지 모양",
+                        content: "• 평면도형: 동그라미(원), 세모(삼각형), 네모(사각형)의 직관적 이해<br>• 뾰족한 곳(꼭짓점)과 곧은 선(변) 찾기"
+                    },
+                    {
+                        subtitle: "공간 감각",
+                        content: "• 쌓기나무: 앞, 뒤, 옆에서 본 모양 추론하기<br>• 칠교놀이: 조각을 조합하여 새로운 모양 만들기"
+                    }
+                ],
+                tip: "도형의 이름을 외우기보다 특징(뾰족하다, 둥글다 등)을 말로 설명하는 연습이 중요합니다."
+            },
+            "e12_stat": {
+                title: "분류하기",
+                color: "bg-purple-500",
+                sections: [
+                    {
+                        subtitle: "분류의 기준",
+                        content: "• 속성에 따른 분류: 색깔, 모양, 크기 등 명확한 기준 세우기<br>• '예쁜 것' 처럼 기준이 명확하지 않은 것은 분류할 수 없음"
+                    },
+                    {
+                        subtitle: "표 만들기",
+                        content: "• 자료를 분류하여 수를 세고 표로 나타내기 (O, X 표시 등)"
+                    }
+                ],
+                tip: "컴퓨터 사고력(알고리즘)의 기초입니다. '왜 그렇게 분류했니?'라고 묻고 기준을 설명하게 하세요."
+            },
+
+            // ================== 초등 3-4 ==================
+            "e34_num": {
+                title: "자연수 완성 및 분수",
+                color: "bg-blue-500",
+                sections: [
+                    {
+                        subtitle: "나눗셈",
+                        content: "• 등분제와 포함제: 똑같이 나누기 vs 덜어내기<br>• $A \\div B = Q \\cdots R$ (나머지는 나누는 수보다 작아야 함)"
+                    },
+                    {
+                        subtitle: "분수와 소수",
+                        content: "• 분수: 전체를 똑같이 나눈 것 중의 일부분 ($ \\frac{\\text{부분}}{\\text{전체}} $)<br>• 종류: 진분수($ \\frac{1}{2} $), 가분수($ \\frac{3}{2} $), 대분수($ 1\\frac{1}{2} $)<br>• 소수: $ \\frac{1}{10} = 0.1 $ 등 십진법의 확장"
+                    }
+                ],
+                tip: "분수를 처음 접할 때 개념을 확실히 잡아야 합니다. 1/3이 왜 1/2보다 작은지 피자나 그림을 그려서 이해시켜 주세요."
+            },
+            "e34_geo": {
+                title: "평면도형의 성질",
+                color: "bg-orange-500",
+                sections: [
+                    {
+                        subtitle: "각도",
+                        content: "• 예각(0°~90°), 직각(90°), 둔각(90°~180°)의 구분<br>• 각도기를 이용한 각의 크기 측정"
+                    },
+                    {
+                        subtitle: "삼각형과 사각형",
+                        content: "• 이등변삼각형, 정삼각형의 정의와 성질<br>• 사각형의 포함 관계 기초 (직사각형, 정사각형)"
+                    },
+                    {
+                        subtitle: "도형의 이동",
+                        content: "• 밀기(평행이동), 뒤집기(대칭이동), 돌리기(회전이동)에 따른 모양 변화 추론"
+                    }
+                ],
+                tip: "도형의 이동(뒤집기, 돌리기)은 머리로만 하면 어렵습니다. 투명 종이나 구체물을 직접 돌려보는 경험이 필수적입니다."
+            },
+            "e34_stat": {
+                title: "자료의 시각화",
+                color: "bg-purple-500",
+                sections: [
+                    {
+                        subtitle: "막대그래프",
+                        content: "• 수량의 크기를 비교하기 좋음<br>• 눈금 한 칸의 크기를 정하는 것이 중요"
+                    },
+                    {
+                        subtitle: "꺾은선그래프",
+                        content: "• 시간에 따른 수량의 **변화**를 보여주기에 적합<br>• 기울기가 급할수록 변화가 큼"
+                    }
+                ],
+                tip: "그래프를 그리는 것보다 해석하는 것이 중요합니다. '가장 많이 늘어난 때는 언제인가?' 같은 질문을 던져주세요."
+            },
+
+            // ================== 초등 5-6 ==================
+            "e56_num": {
+                title: "분수의 연산 (핵심)",
+                color: "bg-blue-600",
+                badge: "집중관리",
+                sections: [
+                    {
+                        subtitle: "약수와 배수",
+                        content: "• 최대공약수(GCD): 공통인 약수 중 가장 큰 수 (약분, 타일 붙이기 문제)<br>• 최소공배수(LCM): 공통인 배수 중 가장 작은 수 (통분, 톱니바퀴 문제)"
+                    },
+                    {
+                        subtitle: "분수의 사칙연산",
+                        content: "• **통분**: 분모가 다른 분수의 덧셈·뺄셈을 위해 분모를 같게 만듦<br>• 곱셈: 분모는 분모끼리, 분자는 분자끼리 곱함<br>• 나눗셈: 역수를 곱하는 원리 ($ \\frac{a}{b} \\div \\frac{c}{d} = \\frac{a}{b} \\times \\frac{d}{c} $)"
+                    }
+                ],
+                tip: "초등 수학의 최대 난관입니다. 여기서 무너지면 중학 수학은 불가능합니다. 계산이 느리다면 약수/배수부터 다시 복습하세요."
+            },
+            "e56_rule": {
+                title: "비와 비율",
+                color: "bg-green-500",
+                sections: [
+                    {
+                        subtitle: "비와 비율",
+                        content: "• 비(Ratio): $a : b$ ($b$가 기준량, $a$가 비교하는 양)<br>• 비율(Rate): $ \\frac{a}{b} $ 또는 백분율($\\%$)"
+                    },
+                    {
+                        subtitle: "비례식과 비례배분",
+                        content: "• 비례식의 성질: 외항의 곱 = 내항의 곱 ($a:b=c:d \\iff ad=bc$)<br>• 비례배분: 전체를 주어진 비로 나누는 것"
+                    }
+                ],
+                tip: "소금물 농도, 속력 등 중등 방정식 활용 문제의 기초가 됩니다. 무엇이 '기준량'인지 파악하는 독해력이 중요합니다."
+            },
+            "e56_geo": {
+                title: "도형의 측정",
+                color: "bg-orange-500",
+                sections: [
+                    {
+                        subtitle: "합동과 대칭",
+                        content: "• 합동: 모양과 크기가 같아 포개지는 도형<br>• 선대칭(데칼코마니), 점대칭 도형의 성질"
+                    },
+                    {
+                        subtitle: "입체도형",
+                        content: "• 직육면체/정육면체의 겉넓이와 부피 구하기<br>• 전개도와 겨냥도 그리기"
+                    },
+                    {
+                        subtitle: "원의 넓이",
+                        content: "• 원주율($\\pi$): 원의 지름에 대한 원주의 비율 (약 3.14)<br>• 넓이 = 반지름 $\\times$ 반지름 $\\times 3.14$"
+                    }
+                ],
+                tip: "공식을 무작정 외우지 마세요. 원의 넓이 공식이 왜 직사각형 넓이 구하는 방식에서 유도되었는지 과정을 이해해야 합니다."
+            },
+            "e56_stat": {
+                title: "평균과 가능성",
+                color: "bg-purple-500",
+                sections: [
+                    {
+                        subtitle: "평균",
+                        content: "• 자료 전체의 합을 자료의 개수로 나눈 값 (대푯값의 기초)"
+                    },
+                    {
+                        subtitle: "비율 그래프",
+                        content: "• 띠그래프, 원그래프: 전체에 대한 각 부분의 비율을 한눈에 파악"
+                    }
+                ],
+                tip: "신문 기사나 뉴스에 나오는 도표를 보며 실제로 해석해보는 활동이 도움이 됩니다."
+            },
+
+            // ================== 중등 1 ==================
+            "m1_num": {
+                title: "정수와 유리수",
+                color: "bg-blue-600",
+                sections: [
+                    {
+                        subtitle: "소인수분해",
+                        content: "• 소수(Prime Number): 1과 자기 자신만을 약수로 가지는 수<br>• 거듭제곱과 소인수분해를 이용한 약수 구하기"
+                    },
+                    {
+                        subtitle: "정수와 유리수",
+                        content: "• 음수(-)의 도입: 0보다 작은 수<br>• 수직선과 절댓값(원점으로부터의 거리)"
+                    },
+                    {
+                        subtitle: "유리수의 계산",
+                        content: "• 부호의 결정: $(-)\\times(-) = (+)$, $(-)\\times(+) = (-)$<br>• 분배법칙: $a(b+c) = ab + ac$"
+                    }
+                ],
+                tip: "음수의 덧셈/뺄셈에서 실수가 가장 많이 나옵니다. 부호 규칙을 구구단처럼 체화시켜야 합니다."
+            },
+            "m1_alg": {
+                title: "문자와 식",
+                color: "bg-green-600",
+                badge: "추상화 시작",
+                sections: [
+                    {
+                        subtitle: "문자의 사용",
+                        content: "• 곱셈 기호의 생략: $a \\times b = ab$, $x \\times 3 = 3x$<br>• 식의 값: 문자에 수를 대입하여 계산"
+                    },
+                    {
+                        subtitle: "일차방정식",
+                        content: "• 방정식: 미지수 $x$값에 따라 참/거짓이 되는 등식<br>• 항등식: 항상 참인 등식 ($0x=0$ 꼴)<br>• 풀이: 이항을 이용해 $ax=b$ 꼴로 변형 ($x = b/a$)"
+                    },
+                    {
+                        subtitle: "좌표평면과 그래프",
+                        content: "• 순서쌍 $(x, y)$와 사분면의 이해<br>• 정비례($y=ax$)와 반비례($y=a/x$) 그래프"
+                    }
+                ],
+                tip: "초등의 □가 $x$로 바뀌었습니다. 문자를 숫자처럼 다루는 것에 익숙해져야 하며, '거속시', '농도' 등 활용 문제 식 세우기를 연습하세요."
+            },
+            "m1_geo": {
+                title: "기본 도형과 작도",
+                color: "bg-orange-600",
+                sections: [
+                    {
+                        subtitle: "기본 요소",
+                        content: "• 점, 선, 면, 각 (교점, 교선)<br>• 위치 관계: 평행, 일치, 한 점에서 만남, 꼬인 위치(공간)"
+                    },
+                    {
+                        subtitle: "작도와 합동",
+                        content: "• 눈금 없는 자와 컴퍼스만을 이용<br>• 삼각형의 합동 조건: SSS(세 변), SAS(두 변과 끼인각), ASA(한 변과 양 끝각)"
+                    },
+                    {
+                        subtitle: "평면/입체도형의 성질",
+                        content: "• 다각형의 내각/외각의 합<br>• 부채꼴의 호의 길이와 넓이 (중심각에 정비례)<br>• 다면체(오일러 공식)와 회전체"
+                    }
+                ],
+                tip: "증명(Proof)의 기초 단계입니다. '눈으로 보니 같다'가 아니라 '무슨 조건(SAS 등) 때문에 합동이다'라고 논리적으로 말해야 합니다."
+            },
+            "m1_stat": {
+                title: "통계적 변환",
+                color: "bg-purple-600",
+                sections: [
+                    {
+                        subtitle: "자료의 정리",
+                        content: "• 줄기와 잎 그림: 자료의 분포를 숫자로 확인<br>• 도수분포표: 계급으로 나누어 빈도(도수) 표시"
+                    },
+                    {
+                        subtitle: "히스토그램과 상대도수",
+                        content: "• 히스토그램: 도수분포표의 직사각형 그래프화<br>• 상대도수: 전체 도수에 대한 각 계급의 도수의 비율 (총합은 항상 1)"
+                    }
+                ],
+                tip: "상대도수는 총 개수가 다른 두 집단을 비교할 때 유용하다는 점을 기억하세요."
+            },
+
+            // ================== 중등 2 ==================
+            "m2_num": {
+                title: "유리수와 식",
+                color: "bg-blue-600",
+                sections: [
+                    {
+                        subtitle: "유리수와 순환소수",
+                        content: "• 유한소수: 분모의 소인수가 2나 5뿐인 기약분수<br>• 순환소수: 무한히 반복되는 소수 (유리수에 포함됨)"
+                    },
+                    {
+                        subtitle: "단항식과 다항식의 계산",
+                        content: "• 지수법칙: $a^m \\times a^n = a^{m+n}$, $(a^m)^n = a^{mn}$<br>• 동류항 계산 및 식의 덧셈과 뺄셈"
+                    }
+                ],
+                tip: "고등 수학의 계산 속도는 여기서 결정됩니다. 지수법칙과 다항식 정리를 기계적으로 할 수 있을 만큼 반복하세요."
+            },
+            "m2_alg": {
+                title: "함수와 부등식",
+                color: "bg-green-600",
+                sections: [
+                    {
+                        subtitle: "일차부등식",
+                        content: "• 부등식의 성질: 음수를 곱하거나 나누면 부등호 방향이 바뀜"
+                    },
+                    {
+                        subtitle: "연립일차방정식",
+                        content: "• 미지수가 2개인 방정식<br>• 풀이법: 가감법(더하거나 빼서 소거), 대입법"
+                    },
+                    {
+                        subtitle: "일차함수",
+                        content: "• 기본형: $y = ax + b$ ($a$: 기울기, $b$: $y$절편)<br>• 기울기 = $\\frac{y\\text{증가량}}{x\\text{증가량}}$<br>• 일차함수와 미지수가 2개인 일차방정식은 같은 그래프임"
+                    }
+                ],
+                tip: "함수, 방정식, 부등식이 서로 연결되어 있음을 깨달아야 합니다. $f(x)=0$의 해가 그래프의 $x$절편임을 이해하세요."
+            },
+            "m2_geo": {
+                title: "닮음과 성질",
+                color: "bg-orange-600",
+                badge: "기하 심화",
+                sections: [
+                    {
+                        subtitle: "삼각형의 성질",
+                        content: "• 이등변삼각형: 두 밑각의 크기가 같음<br>• 외심: 세 변의 수직이등분선의 교점 (외접원의 중심)<br>• 내심: 세 내각의 이등분선의 교점 (내접원의 중심)"
+                    },
+                    {
+                        subtitle: "도형의 닮음",
+                        content: "• 닮음비: 대응하는 변의 길이의 비 ($m:n$)<br>• 넓이의 비 ($m^2:n^2$), 부피의 비 ($m^3:n^3$)<br>• 닮음 조건: AA(각 2개), SAS, SSS"
+                    }
+                ],
+                tip: "수능 기하 문제의 80%는 중2 닮음과 피타고라스를 씁니다. 보조선을 그어 닮음인 삼각형을 찾는 훈련을 하세요."
+            },
+            "m2_stat": {
+                title: "확률",
+                color: "bg-purple-600",
+                sections: [
+                    {
+                        subtitle: "경우의 수",
+                        content: "• 사건 $A$ 또는 $B$ (합의 법칙): $m + n$<br>• 사건 $A$ 그리고 $B$ (곱의 법칙): $m \\times n$"
+                    },
+                    {
+                        subtitle: "확률",
+                        content: "• 확률 $P = \\frac{\\text{특정 사건의 경우의 수}}{\\text{전체 경우의 수}}$<br>• 어떤 사건이 일어나지 않을 확률 = $1 - P$"
+                    }
+                ],
+                tip: "빠짐없이, 중복되지 않게 세는 것이 핵심입니다. '적어도'라는 말이 나오면 전체에서 반대 경우를 빼는 것이 유리합니다."
+            },
+
+            // ================== 중등 3 ==================
+            "m3_num": {
+                title: "실수와 제곱근",
+                color: "bg-blue-600",
+                sections: [
+                    {
+                        subtitle: "제곱근과 실수",
+                        content: "• 제곱근($\\sqrt{a}$): 제곱하여 $a$가 되는 수<br>• 무리수: 순환하지 않는 무한소수 ($\\sqrt{2}, \\pi$ 등)<br>• 실수 체계 완성: 유리수 + 무리수"
+                    },
+                    {
+                        subtitle: "인수분해",
+                        content: "• 곱셈공식의 역연산: $ma + mb = m(a+b)$<br>• 완전제곱식, 합차공식 ($a^2-b^2=(a+b)(a-b)$)"
+                    }
+                ],
+                tip: "인수분해는 이차방정식을 풀기 위한 도구입니다. 식을 보자마자 인수분해 공식이 떠오를 정도로 숙달되어야 합니다."
+            },
+            "m3_alg": {
+                title: "이차식의 세계",
+                color: "bg-green-600",
+                sections: [
+                    {
+                        subtitle: "이차방정식",
+                        content: "• 풀이: 인수분해 또는 근의 공식 ($x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$)<br>• 판별식($D=b^2-4ac$): 해의 개수 판별 ($D>0$ 2개, $D=0$ 1개, $D<0$ 0개)"
+                    },
+                    {
+                        subtitle: "이차함수",
+                        content: "• 기본형: $y = ax^2$ (원점을 지나는 포물선)<br>• 표준형: $y = a(x-p)^2 + q$ (꼭짓점 $(p,q)$)<br>• $a$의 부호는 볼록 방향, 절댓값은 폭을 결정"
+                    }
+                ],
+                tip: "이차함수 그래프의 대칭성(축)과 꼭짓점의 의미를 완벽히 이해해야 고등 수학을 할 수 있습니다."
+            },
+            "m3_geo": {
+                title: "삼각비와 원",
+                color: "bg-orange-600",
+                sections: [
+                    {
+                        subtitle: "삼각비",
+                        content: "• 직각삼각형에서 변의 길이의 비<br>• $\\sin A = \\frac{\\text{높이}}{\\text{빗변}}, \\cos A = \\frac{\\text{밑변}}{\\text{빗변}}, \\tan A = \\frac{\\text{높이}}{\\text{밑변}}$<br>• 특수각(30°, 45°, 60°)의 값 암기 필수"
+                    },
+                    {
+                        subtitle: "원의 성질",
+                        content: "• 원주각: 중심각의 $\\frac{1}{2}$<br>• 접선과 현이 이루는 각"
+                    }
+                ],
+                tip: "삼각비는 고2 삼각함수의 기초입니다. 사인, 코사인 값을 단위원이나 그래프로 머릿속에 그려보세요."
+            },
+            "m3_stat": {
+                title: "통계 심화",
+                color: "bg-purple-600",
+                sections: [
+                    {
+                        subtitle: "대푯값",
+                        content: "• 평균, 중앙값(크기순 나열 시 중앙), 최빈값(가장 많이 나타난 값)"
+                    },
+                    {
+                        subtitle: "산포도",
+                        content: "• 편차: 변량 - 평균<br>• 분산: 편차 제곱의 평균<br>• 표준편차: $\\sqrt{\\text{분산}}$ (자료가 평균 중심으로 얼마나 퍼져있는가)"
+                    }
+                ],
+                tip: "평균이 같아도 산포도는 다를 수 있습니다. 데이터 분석의 기초가 되는 '표준편차'의 의미를 정확히 이해하세요."
+            },
+
+            // ================== 고등 공통 ==================
+            "h_com_num": {
+                title: "복소수와 행렬",
+                color: "bg-blue-800",
+                badge: "개념 확장",
+                sections: [
+                    {
+                        subtitle: "다항식과 나머지정리",
+                        content: "• 항등식의 성질을 이용한 미정계수법<br>• 나머지정리: $f(x)$를 $x-a$로 나눈 나머지는 $f(a)$이다."
+                    },
+                    {
+                        subtitle: "복소수",
+                        content: "• 허수단위 $i = \\sqrt{-1}$ ($i^2 = -1$)<br>• 복소수 $z = a+bi$ ($a,b$는 실수)"
+                    },
+                    {
+                        subtitle: "행렬 (2022 개정 재도입)",
+                        content: "• 행(Row)과 열(Column)로 이루어진 수의 배열<br>• 행렬의 덧셈, 뺄셈, 실수배, 곱셈 연산<br>• 케일리-해밀턴 정리는 삭제되었으나 기본 연산은 필수"
+                    }
+                ],
+                tip: "행렬이 부활했습니다! 데이터 처리의 기본 단위이므로 연산 규칙(특히 곱셈 순서)에 주의하세요."
+            },
+            "h_com_alg": {
+                title: "함수의 일반화",
+                color: "bg-green-800",
+                sections: [
+                    {
+                        subtitle: "함수",
+                        content: "• 정의: 정의역 $X$의 각 원소에 공역 $Y$의 원소가 오직 하나씩 대응<br>• 일대일대응, 항등함수, 상수함수<br>• 합성함수 $(g \\circ f)(x)$와 역함수 $f^{-1}(x)$"
+                    },
+                    {
+                        subtitle: "유리함수와 무리함수",
+                        content: "• 유리함수 $y=\\frac{k}{x-p}+q$: 점근선이 중요<br>• 무리함수 $y=\\sqrt{ax+b}$: 시작점과 방향이 중요"
+                    }
+                ],
+                tip: "함수를 '대응 관계'와 '그래프' 두 가지 관점에서 모두 볼 수 있어야 합니다. 역함수는 $y=x$ 대칭임을 기억하세요."
+            },
+            "h_com_geo": {
+                title: "도형의 방정식",
+                color: "bg-orange-800",
+                sections: [
+                    {
+                        subtitle: "평면좌표",
+                        content: "• 두 점 사이의 거리 공식<br>• 선분의 내분점과 외분점"
+                    },
+                    {
+                        subtitle: "직선과 원의 방정식",
+                        content: "• 직선: $y-y_1 = m(x-x_1)$<br>• 원: $(x-a)^2 + (y-b)^2 = r^2$<br>• 점과 직선 사이의 거리 공식 (필수 암기)"
+                    },
+                    {
+                        subtitle: "도형의 이동",
+                        content: "• 평행이동: $(x, y) \\to (x+a, y+b)$ 이면 식은 $f(x-a, y-b)=0$<br>• 대칭이동: $x$축, $y$축, 원점, $y=x$ 대칭"
+                    }
+                ],
+                tip: "기하 문제를 대수(식)로 푸는 단원입니다. 그림을 그려 상황을 파악하고 식을 세우는 연습이 필요합니다."
+            },
+            "h_com_stat": {
+                title: "순열과 조합",
+                color: "bg-purple-800",
+                sections: [
+                    {
+                        subtitle: "경우의 수",
+                        content: "• 순열($nP_r$): 순서를 고려하여 뽑는 경우 ($n$개 중 $r$개 나열)<br>• 조합($nC_r$): 순서 상관없이 뽑기만 하는 경우 (대표 뽑기)"
+                    }
+                ],
+                tip: "$nP_r$과 $nC_r$의 차이(순서 유무)를 구별하는 것이 가장 중요합니다."
+            },
+
+            // ================== 고등 선택 ==================
+            "h_sel_alg": {
+                title: "대수 (구 수1)",
+                color: "bg-blue-700",
+                sections: [
+                    {
+                        subtitle: "지수함수와 로그함수",
+                        content: "• 지수의 확장 (유리수, 실수 범위)<br>• 로그의 정의: $a^x=b \\iff x=\\log_a b$<br>• 지수/로그함수의 그래프와 평행이동"
+                    },
+                    {
+                        subtitle: "삼각함수",
+                        content: "• 호도법($\\pi = 180^\\circ$)과 일반각<br>• 사인법칙과 코사인법칙 (삼각형 해석의 핵심)"
+                    },
+                    {
+                        subtitle: "수열",
+                        content: "• 등차수열(공차 $d$), 등비수열(공비 $r$)<br>• 수열의 합 $\\sum$ 기호의 활용<br>• 수학적 귀납법"
+                    }
+                ],
+                tip: "새로운 함수들(지수, 로그, 삼각)의 그래프 개형을 자유자재로 그릴 수 있어야 합니다."
+            },
+            "h_sel_calc": {
+                title: "미적분 I·II",
+                color: "bg-green-700",
+                badge: "수능 핵심",
+                sections: [
+                    {
+                        subtitle: "함수의 극한과 연속",
+                        content: "• $\\lim_{x \\to a} f(x) = L$ (좌극한=우극한)<br>• 연속의 조건: 함숫값 = 극한값"
+                    },
+                    {
+                        subtitle: "미분법",
+                        content: "• 미분계수 = 순간변화율 = 접선의 기울기<br>• 도함수 $f'(x)$를 이용한 그래프 개형 추론 (극대, 극소)"
+                    },
+                    {
+                        subtitle: "적분법",
+                        content: "• 부정적분: 미분의 역연산<br>• 정적분: 넓이와 부피 구하기 (리만 합의 극한)"
+                    }
+                ],
+                tip: "미적분은 그래프를 분석하는 도구입니다. 복잡한 함수를 미분하여 증감표를 그리고 그래프를 그리는 훈련을 하세요."
+            },
+            "h_sel_geo": {
+                title: "선택 - 기하",
+                color: "bg-orange-700",
+                sections: [
+                    {
+                        subtitle: "이차곡선",
+                        content: "• 포물선(초점, 준선), 타원(거리의 합), 쌍곡선(거리의 차)<br>• 접선의 방정식"
+                    },
+                    {
+                        subtitle: "평면벡터",
+                        content: "• 벡터의 뜻과 연산 (합, 차, 실수배)<br>• 내적 ($ \\vec{a} \\cdot \\vec{b} = |a||b|\\cos\\theta $): 수직 조건, 각도 구하기"
+                    },
+                    {
+                        subtitle: "공간도형과 공간좌표",
+                        content: "• 삼수선의 정리, 정사영(그림자 넓이 $S' = S \\cos\\theta$)<br>• 구의 방정식"
+                    }
+                ],
+                tip: "기하는 '정의(Definition)'로 시작해서 정의로 끝납니다. 이차곡선의 정의를 활용해 식을 세우는 연습이 최우선입니다."
+            },
+            "h_sel_stat": {
+                title: "선택 - 확률과 통계",
+                color: "bg-purple-700",
+                sections: [
+                    {
+                        subtitle: "여러 가지 순열과 조합",
+                        content: "• 원순열, 중복순열($\\Pi$), 중복조합($H$)<br>• 이항정리: $(a+b)^n$의 전개식"
+                    },
+                    {
+                        subtitle: "확률",
+                        content: "• 조건부확률 $P(B|A)$: 사건 A가 일어났을 때 B가 일어날 확률<br>• 독립시행의 확률"
+                    },
+                    {
+                        subtitle: "통계",
+                        content: "• 이산확률분포 vs 연속확률분포(정규분포)<br>• 통계적 추정: 표본평균으로 모평균 추정하기 (신뢰구간)"
+                    }
+                ],
+                tip: "확률과 통계는 국어 실력(독해력)이 중요합니다. 문제가 묻는 상황이 '순서가 있는지', '중복을 허용하는지' 꼼꼼히 따져보세요."
+            }
+        };
+
+        function openModal(key) {
+            const data = conceptData[key];
+            if (!data) return;
+
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalBody = document.getElementById('modal-body');
+
+            // 색상 처리
+            const bgClass = data.color;
+            const textClass = bgClass.replace('bg-', 'text-');
+            const borderClass = bgClass.replace('bg-', 'border-');
+
+            // Sections 생성
+            const sectionsHtml = data.sections.map(section => `
+                <div class="note-section ${borderClass}">
+                    <h4 class="note-title text-lg">
+                        <i class="fas fa-check-circle ${textClass} text-sm"></i> ${section.subtitle}
+                    </h4>
+                    <div class="note-content">
+                        ${section.content}
+                    </div>
+                </div>
+            `).join('');
+
+            let contentHtml = `
+                <div class="${bgClass} text-white p-6 sticky top-0 z-20 shadow-md flex justify-between items-center modal-header">
+                    <div class="flex items-center gap-3">
+                        ${data.badge ? `<span class="bg-white text-rose-600 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider shadow-sm">${data.badge}</span>` : ''}
+                        <h2 class="text-2xl font-bold tracking-tight">${data.title}</h2>
+                    </div>
+                    <button onclick="closeModal(event, true)" class="text-white/80 hover:text-white transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 md:p-8">
+                    <div class="mb-8">
+                        <h3 class="font-bold text-gray-400 text-xs uppercase tracking-widest mb-4 border-b pb-2">Concept Summary Note</h3>
+                        ${sectionsHtml}
+                    </div>
+
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-5 rounded-r-lg shadow-sm">
+                        <h3 class="font-bold text-yellow-800 text-sm mb-2 flex items-center gap-2">
+                            <i class="fas fa-comment-dots text-yellow-600"></i> 선생님의 한마디 (Learning Tip)
+                        </h3>
+                        <p class="text-slate-700 text-sm leading-relaxed font-medium">
+                            "${data.tip}"
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-50 p-4 border-t border-slate-100 text-center">
+                    <button onclick="closeModal(event, true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-lg transition">
+                        닫기
+                    </button>
+                </div>
+            `;
+
+            modalBody.innerHTML = contentHtml;
+            modalOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Render MathJax
+            if (window.MathJax) {
+                window.MathJax.typesetPromise([modalBody]);
+            }
+        }
+
+        function closeModal(event, force = false) {
+            if (force || event.target.id === 'modal-overlay') {
+                const modalOverlay = document.getElementById('modal-overlay');
+                modalOverlay.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeModal(null, true);
+            }
+        });
+    </script>
 </body>
 </html>
